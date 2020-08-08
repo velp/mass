@@ -1,0 +1,24 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+mass
+
+# Test binary, build with `go test -c`
+*.test
+__debug_bin
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+.cover/
+
+# Vendor directory
+vendor/
+
+# Editor specific
+.vscode/
+.idea/
+debug
+vim-go-test-compile
