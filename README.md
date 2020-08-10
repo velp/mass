@@ -18,6 +18,25 @@ make build
 ```
 
 ## Run tests
+All options you can find in help:
+
+```shell
+$ mass -h
+Usage of ./mass:
+  -dns-domain string
+    	Domain which will be used in DNS A query. Masked part (*) will be randomized. (default "example.com")
+  -dst-ip string
+    	Target IP address.
+  -goroutines int
+    	Number of goroutines to generate traffic. (default 10)
+  -module string
+    	Module to run tests. Supported modules: dns-flooder, dns-checker. (default "dns-flooder")
+  -src-ip-range string
+    	Sets source IP range for spoofing in format 192.168.10-40.1-255. (default: ip address from interface)
+  -src-port-range string
+    	Sets source port range. (default "30000-65536")
+```
+
 ### DNS A query flood + src IP spoofing
 How to start DNS-flood test with source IP spoofing (target host `192.168.0.3`, target domain `kokoko.ru`):
 
