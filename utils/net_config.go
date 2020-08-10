@@ -20,11 +20,23 @@ func DetermineNetworkConfig(dstIP net.IP) (*net.Interface, net.IP, net.HardwareA
 		return nil, nil, nil, fmt.Errorf("error while creating routing object: %s", err)
 	}
 
-	iface, _, srcIP, err := router.Route(dstIP)
+	iface, gateway, srcIP, err := router.Route(dstIP)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("error routing to ip %s: %s", dstIP, err)
 	}
-
+	iface.Addrs()
+	addrs, err := iface.Addrs()
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("cannot get network addresses for interface: %s", iface.Name)
+	}
+	for _, addr := range addrs {
+		if v, ok := addr.(*net.IPNet); ok {
+			if v.Contains(srcIP) && !v.Contains(dstIP) {
+				log.Printf("use gateway IP %s to fnd destination MAC address because IP address %s is out of broadcast domain %s", gateway, dstIP, v.String())
+				dstIP = gateway
+			}
+		}
+	}
 	dstMAC, err := getDstMACAddress(iface, srcIP, dstIP)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("error destination MAC address for %s: %s", dstIP, err)

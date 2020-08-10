@@ -66,7 +66,7 @@ func main() {
 	case "dns-flooder":
 		mod = modules.NewDNSFlooder(iface, srcIPRange, srcPortRange, dstMAC, dstIP, dnsDomainArg)
 	case "dns-checker":
-		mod = modules.NewDNSChecker()
+		mod = modules.NewDNSChecker(dstIP, dnsDomainArg)
 	default:
 		log.Fatalf("unsupported module %s", moduleArg)
 	}
