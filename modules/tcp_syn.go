@@ -58,10 +58,10 @@ func (d *TCPsynSender) send(idx int) {
 	log.Printf("TCP SYN sender #%v started", idx)
 	defer log.Printf("TCP SYN sender #%v stoped", idx)
 	// Generators
-	srcPortGenerator := &d.srcPortRange
-	srcIPGenerator := &d.srcIPRange
-	ipHdrIDGenerator := &d.ipHdrIDGenerator
-	tcpSeqGenerator := &d.tcpSeqGenerator
+	srcPortGenerator := d.srcPortRange
+	srcIPGenerator := d.srcIPRange
+	ipHdrIDGenerator := d.ipHdrIDGenerator
+	tcpSeqGenerator := d.tcpSeqGenerator
 	// Prepare static parts of packet and options
 	serializeOpts := gopacket.SerializeOptions{
 		FixLengths:       true,

