@@ -6,7 +6,7 @@ Small utility to stress-test your DNS infrastructure. Working only on Linux-base
 ## Install
 Install from binary:
 ```shell
-wget -c https://github.com/velp/mass/releases/download/v0.0.1rc2/mass_v0.0.1rc2_Linux_x86_64.tar.gz -O - | tar -xz
+wget -c https://github.com/velp/mass/releases/download/v0.0.1rc3/mass_v0.0.1rc3_Linux_x86_64.tar.gz -O - | tar -xz
 ```
 
 Install from source
