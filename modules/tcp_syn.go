@@ -3,44 +3,42 @@ package modules
 import (
 	"log"
 	"net"
-	"strings"
 	"sync"
 
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
-
 	"github.com/velp/mass/utils"
 )
 
-type DNSFlooder struct {
+type TCPsynSender struct {
 	wg               *sync.WaitGroup
 	closer           chan struct{}
-	domain           string
 	netDevice        string
 	srcIPRange       utils.IPv4Range
 	srcPortRange     utils.RandomUint32Range
 	ipHdrIDGenerator utils.RandomUint32Range
+	tcpSeqGenerator  utils.RandomUint32Range
 	dstIP            net.IP
 	srcMAC           net.HardwareAddr
 	dstMAC           net.HardwareAddr
 }
 
-func NewDNSFlooder(iface *net.Interface, srcIPRange utils.IPv4Range, srcPortRange utils.RandomUint32Range, dstMAC net.HardwareAddr, dstIP net.IP, domain string) ModuleInterface {
-	return &DNSFlooder{
+func NewTCPsynSender(iface *net.Interface, srcIPRange utils.IPv4Range, srcPortRange utils.RandomUint32Range, dstMAC net.HardwareAddr, dstIP net.IP) ModuleInterface {
+	return &TCPsynSender{
 		wg:               new(sync.WaitGroup),
-		domain:           domain,
 		netDevice:        iface.Name,
 		srcIPRange:       srcIPRange,
 		srcPortRange:     srcPortRange,
 		ipHdrIDGenerator: utils.NewRandomUint32Range(0, 65535),
+		tcpSeqGenerator:  utils.NewRandomUint32Range(1010825923, 1010891458),
 		dstIP:            dstIP,
 		srcMAC:           iface.HardwareAddr,
 		dstMAC:           dstMAC,
 	}
 }
 
-func (d *DNSFlooder) Run(goroutines int) {
+func (d *TCPsynSender) Run(goroutines int) {
 	d.closer = make(chan struct{})
 	for i := 0; i < goroutines; i++ {
 		d.wg.Add(1)
@@ -48,21 +46,22 @@ func (d *DNSFlooder) Run(goroutines int) {
 	}
 }
 
-func (d *DNSFlooder) Stop(wait bool) {
+func (d *TCPsynSender) Stop(wait bool) {
 	close(d.closer)
 	if wait {
 		d.wg.Wait()
 	}
 }
 
-func (d *DNSFlooder) send(idx int) {
+func (d *TCPsynSender) send(idx int) {
 	defer d.wg.Done()
-	log.Printf("DNS A query sender #%v started", idx)
-	defer log.Printf("DNS A query sender #%v stoped", idx)
+	log.Printf("TCP SYN sender #%v started", idx)
+	defer log.Printf("TCP SYN sender #%v stoped", idx)
 	// Generators
 	srcPortGenerator := &d.srcPortRange
 	srcIPGenerator := &d.srcIPRange
 	ipHdrIDGenerator := &d.ipHdrIDGenerator
+	tcpSeqGenerator := &d.tcpSeqGenerator
 	// Prepare static parts of packet and options
 	serializeOpts := gopacket.SerializeOptions{
 		FixLengths:       true,
@@ -75,18 +74,16 @@ func (d *DNSFlooder) send(idx int) {
 	}
 	ipv4Layer := &layers.IPv4{
 		Version:  4,
-		IHL:      5,
 		TTL:      64,
 		Id:       uint16(ipHdrIDGenerator.Next()),
-		Protocol: layers.IPProtocolUDP,
+		Protocol: layers.IPProtocolTCP,
 		DstIP:    d.dstIP,
 	}
-	udpLayer := &layers.UDP{
-		DstPort: layers.UDPPort(53),
-	}
-	dnsLayer := &layers.DNS{
-		ID: 0xAAAA,
-		RD: true,
+	tcpLayer := &layers.TCP{
+		DstPort: layers.TCPPort(53),
+		SYN:     true,
+		Seq:     tcpSeqGenerator.Next(),
+		Window:  1024,
 	}
 	// Open device
 	handle, err := pcap.OpenLive(d.netDevice, 65536, false, pcap.BlockForever)
@@ -102,21 +99,12 @@ func (d *DNSFlooder) send(idx int) {
 		default:
 			// Change IPv4 layer
 			ipv4Layer.SrcIP = srcIPGenerator.Next()
-			// Change UDP layer
-			udpLayer.SrcPort = layers.UDPPort(srcPortGenerator.Next())
-			udpLayer.SetNetworkLayerForChecksum(ipv4Layer)
-			// Change DNS query
-			dnsLayer.Questions = []layers.DNSQuestion{
-				{
-					Type:  layers.DNSTypeA,
-					Class: layers.DNSClassIN,
-					Name:  []byte(strings.ReplaceAll(d.domain, "*", utils.RandomString(10))),
-				},
-			}
-			dnsLayer.QDCount = uint16(len(dnsLayer.Questions))
+			// Change TCP layer
+			tcpLayer.SrcPort = layers.TCPPort(srcPortGenerator.Next())
+			tcpLayer.SetNetworkLayerForChecksum(ipv4Layer)
 			// Serialize
 			buffer := gopacket.NewSerializeBuffer()
-			if err := gopacket.SerializeLayers(buffer, serializeOpts, ethernetLayer, ipv4Layer, udpLayer, dnsLayer); err != nil {
+			if err := gopacket.SerializeLayers(buffer, serializeOpts, ethernetLayer, ipv4Layer, tcpLayer); err != nil {
 				log.Printf("packet preparation failed: %s", err)
 			}
 			// Send

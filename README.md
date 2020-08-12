@@ -6,7 +6,7 @@ Small utility to stress-test your DNS infrastructure. Working only on Linux-base
 ## Install
 Install from binary:
 ```shell
-wget -c https://github.com/velp/mass/releases/download/v0.0.1rc1/mass_0.0.1rc1_Linux_x86_64.tar.gz -O - | tar -xz
+wget -c https://github.com/velp/mass/releases/download/v0.0.1rc2/mass_v0.0.1rc2_Linux_x86_64.tar.gz -O - | tar -xz
 ```
 
 Install from source
@@ -77,6 +77,28 @@ Incoming traffic will look like:
     192.168.0.2.31416 > 192.168.0.3.53: [udp sum ok] 43690+ A? KTuMYrsVht.kokoko.ru. (38)
 14:41:04.743078 fa:16:3e:81:70:04 > fa:16:3e:08:fc:d3, ethertype IPv4 (0x0800), length 80: (tos 0x0, ttl 64, id 0, offset 0, flags [none], proto UDP (17), length 66)
     192.168.0.2.60845 > 192.168.0.3.53: [udp sum ok] 43690+ A? yfBXxhEngL.kokoko.ru. (38)
+```
+
+### TCP SYN flood
+How to start TCP-SYN flood test (target host `192.168.0.3`, port `53`):
+
+```shell
+mass -dst-ip=192.168.0.3 -src-ip-range="172.16.10-40.1-255" -module=tcp-syn -goroutines=4
+```
+
+Incoming traffic will look like:
+
+```
+09:25:00.136473 fa:16:3e:81:70:04 > fa:16:3e:08:fc:d3, ethertype IPv4 (0x0800), length 60: (tos 0x0, ttl 64, id 2871, offset 0, flags [none], proto TCP (6), length 40)
+    172.16.32.252.38137 > 192.168.0.3.53: Flags [S], cksum 0x46c2 (correct), seq 1010828794, win 1024, length 0
+09:25:00.136476 fa:16:3e:81:70:04 > fa:16:3e:08:fc:d3, ethertype IPv4 (0x0800), length 60: (tos 0x0, ttl 64, id 45561, offset 0, flags [none], proto TCP (6), length 40)
+    172.16.32.253.46289 > 192.168.0.3.53: Flags [S], cksum 0x8026 (correct), seq 1010871484, win 1024, length 0
+09:25:00.136971 fa:16:3e:81:70:04 > fa:16:3e:08:fc:d3, ethertype IPv4 (0x0800), length 60: (tos 0x0, ttl 64, id 45561, offset 0, flags [none], proto TCP (6), length 40)
+    172.16.33.177.32750 > 192.168.0.3.53: Flags [S], cksum 0xb455 (correct), seq 1010871484, win 1024, length 0
+09:25:00.136997 fa:16:3e:81:70:04 > fa:16:3e:08:fc:d3, ethertype IPv4 (0x0800), length 60: (tos 0x0, ttl 64, id 45561, offset 0, flags [none], proto TCP (6), length 40)
+    172.16.33.225.42914 > 192.168.0.3.53: Flags [S], cksum 0x8c71 (correct), seq 1010871484, win 1024, length 0
+09:25:00.137856 fa:16:3e:81:70:04 > fa:16:3e:08:fc:d3, ethertype IPv4 (0x0800), length 60: (tos 0x0, ttl 64, id 64570, offset 0, flags [none], proto TCP (6), length 40)
+    172.16.33.233.39983 > 192.168.0.3.53: Flags [S], cksum 0x4d9b (correct), seq 1010890493, win 1024, length 0
 ```
 
 ### DNS A queries to check DNS health

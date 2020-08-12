@@ -23,11 +23,11 @@ var (
 
 func init() {
 	flag.StringVar(&srcIPRangeArg, "src-ip-range", "", "Sets source IP range for spoofing in format 192.168.10-40.1-255. (default: ip address from interface)")
-	flag.StringVar(&srcPortRangeArg, "src-port-range", "30000-65536", "Sets source port range.")
+	flag.StringVar(&srcPortRangeArg, "src-port-range", "30000-65535", "Sets source port range.")
 	flag.IntVar(&goroutinesArg, "goroutines", 10, "Number of goroutines to generate traffic.")
 	flag.StringVar(&dstIPArg, "dst-ip", "", "Target IP address.")
 	flag.StringVar(&dnsDomainArg, "dns-domain", "example.com", "Domain which will be used in DNS A query. Masked part (*) will be randomized.")
-	flag.StringVar(&moduleArg, "module", "dns-flooder", "Module to run tests. Supported modules: dns-flooder, dns-checker.")
+	flag.StringVar(&moduleArg, "module", "dns-flooder", "Module to run tests. Supported modules: dns-flooder, dns-checker, tcp-syn.")
 }
 
 func main() {
@@ -67,6 +67,8 @@ func main() {
 		mod = modules.NewDNSFlooder(iface, srcIPRange, srcPortRange, dstMAC, dstIP, dnsDomainArg)
 	case "dns-checker":
 		mod = modules.NewDNSChecker(dstIP, dnsDomainArg)
+	case "tcp-syn":
+		mod = modules.NewTCPsynSender(iface, srcIPRange, srcPortRange, dstMAC, dstIP)
 	default:
 		log.Fatalf("unsupported module %s", moduleArg)
 	}

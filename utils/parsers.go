@@ -2,65 +2,28 @@ package utils
 
 import (
 	"fmt"
-	"math/rand"
 	"net"
 	"strconv"
 	"strings"
-	"time"
 )
 
-type PortRange struct {
-	collection []int
-	current    int
-	total      int
-}
-
-func (r *PortRange) Next() int {
-	r.current++
-	if r.current == r.total {
-		r.current = 0
-	}
-	return r.collection[r.current]
-}
-
-func ParsePortRange(portRangeStr string) (portRange PortRange, err error) {
-	portRange = PortRange{
-		current: 0,
-		total:   0,
-	}
+func ParsePortRange(portRangeStr string) (RandomUint32Range, error) {
 	parts := strings.Split(portRangeStr, "-")
 	if len(parts) != 2 {
-		err = fmt.Errorf("cannot parse port range %s, must be in format <port_start>-<port_end>", portRangeStr)
-		return
+		return RandomUint32Range{}, fmt.Errorf("cannot parse port range %s, must be in format <port_start>-<port_end>", portRangeStr)
 	}
-	p0, err := strconv.Atoi(parts[0])
+	p0, err := strconv.ParseUint(parts[0], 10, 16)
 	if err != nil {
-		err = fmt.Errorf("cannot parse start port, must be a number from range 0-65536")
-		return
+		return RandomUint32Range{}, fmt.Errorf("cannot parse start port, must be a number from range 0-65535")
 	}
-	p1, err := strconv.Atoi(parts[1])
+	p1, err := strconv.ParseUint(parts[1], 10, 16)
 	if err != nil {
-		err = fmt.Errorf("cannot parse end port, must be a number from range 0-65536")
-		return
+		return RandomUint32Range{}, fmt.Errorf("cannot parse end port, must be a number from range 0-65535")
 	}
 	if p0 > p1 {
-		err = fmt.Errorf("start port must be less than end port")
-		return
+		return RandomUint32Range{}, fmt.Errorf("start port must be less than end port")
 	}
-	// Generate list of ports
-	ports := make([]int, p1-p0+1)
-	for i := range ports {
-		ports[i] = p0 + i
-	}
-	// Shuffle ports
-	r := rand.New(rand.NewSource(time.Now().Unix()))
-	portRange.collection = make([]int, len(ports))
-	perm := r.Perm(len(ports))
-	for i, randIndex := range perm {
-		portRange.collection[i] = ports[randIndex]
-	}
-	portRange.total = len(ports)
-	return
+	return NewRandomUint32Range(uint32(p0), uint32(p1)), nil
 }
 
 type IPv4Range struct {
